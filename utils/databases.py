@@ -5,8 +5,10 @@ import pandas as pd
 import pprint
 if __name__ == "__main__":
     import file_operations
+    import database_connection
 else:
     from utils import file_operations
+    from utils.database_connection import DatabaseConnection
 
 # commands to see the "Python interpreter location"
 # import pprint
@@ -19,12 +21,12 @@ Concerned with storing and retrieving books from a list.
 
 
 class Movies:
-    def __init__(self):
+    def __init__(self) -> None:
         # paths where the files live
         self.path_filename = sys.path[0] + "/utils/files/"
-        self.path_db = sys.path[0] + "/utils/"
+        self.path_db = sys.path[0] + "/utils/data.db"
 
-    def add_movie(self, store_type='db'):
+    def add_movie(self, store_type='db') -> bool:
         """
         Function created to add new registers of movies into a json file or into the database
         :param store_type: db (database) or f (file). By default it considers db (database).
@@ -34,34 +36,43 @@ class Movies:
         self.add_another_movie = "yes"
 
         while self.add_another_movie == "yes":
-            # request each information of the new movies and store them on variables
-            movie_name = input("\nMovie Name: ")
-            director_name = input("Director Name: ")
-            movie_year = int(input("Year of the production: "))
-            name_main_actor_actress = input("Main actor / Actress: ")
 
-            # create a dictionary variable that will be used to store new movies
-            new_movie = {
-                        "movie_name": movie_name
-                        , "director_name": director_name
-                        , "movie_year": movie_year
-                        , "name_main_actor_actress": name_main_actor_actress
-                        , "read": 0
-                        }
+            try:
+                # request each information of the new movies and store them on variables
+                movie_name = input("\nMovie Name: ")
+                director_name = input("Director Name: ")
+                movie_year = int(input("Year of the production: "))
+                name_main_actor_actress = input("Main actor / Actress: ")
 
-            if store_type == "f":
-                result_insert_file = self._write_movie_file(new_movie, "a")
-            else:
-                result_insert_file = self._add_movie_db(new_movie)
+                # create a dictionary variable that will be used to store new movies
+                new_movie = {
+                            "movie_name": movie_name
+                            , "director_name": director_name
+                            , "movie_year": movie_year
+                            , "name_main_actor_actress": name_main_actor_actress
+                            , "read": 0
+                            }
 
-            if result_insert_file:
-                # check if another movie will be inserted by user
-                self.add_another_movie = input("\nDo you want insert other movie (yes/no): ").lower()
+                if store_type == "f":
+                    result_insert_file = self._write_movie_file(new_movie, "a")
+                else:
+                    result_insert_file = self._add_movie_db(new_movie)
 
-                if self.add_another_movie == "no":
-                    return True
+                if result_insert_file:
+                    # check if another movie will be inserted by user
+                    self.add_another_movie = input("\nDo you want insert other movie (yes/no): ").lower()
 
-    def delete_movie(self, movie_name, store_type="db"):
+                    if self.add_another_movie == "no":
+                        return True
+
+            except ValueError as e_value:
+                print(f"\nDefinition of an object is not set properly.\nError description: {str(e_value)}")
+                return False
+            except Exception as e:
+                print(f"\nOccurred an error during this process.\nError description: {str(e)}")
+                return False
+
+    def delete_movie(self, movie_name, store_type="db") -> bool:
         """
         Function created to delete registers of movies from a json file or from database
         :param movie_name, store_type: movie_name desired to be deleted.
@@ -75,7 +86,7 @@ class Movies:
 
         return result_delete_file
 
-    def read_movie(self, movie_name, store_type="db"):
+    def read_movie(self, movie_name, store_type="db") -> bool:
         """
         Function created to read movies from a json file or from database
         :param movie_name, store_type: movie_name desired to be deleted.
@@ -99,26 +110,23 @@ class Movies:
             result_list = self._create_dataframe_list(file)
 
         else:
-            connection = sqlite3.connect(self.path_db + "data.db")
-            cursor = connection.cursor()
+            with DatabaseConnection(self.path_db) as cursor:
 
-            cursor.execute("select * from tb_movies")
-            movies = cursor.fetchall()
+                cursor.execute("select * from tb_movies")
+                movies = cursor.fetchall()
 
-            connection.close()
+                # creates the same structure that the json file has and create the dataframe
+                list_movies = []
+                for row in movies:
+                    row_dict = {}
+                    row_dict["movie_name"] = row[0]
+                    row_dict["director_name"] = row[1]
+                    row_dict["movie_year"] = row[2]
+                    row_dict["name_main_actor_actress"] = row[3]
+                    row_dict["read"] = row[4]
+                    list_movies.append(row_dict)
 
-            # creates the same structure that the json file has and create the dataframe
-            list_movies = []
-            for row in movies:
-                row_dict = {}
-                row_dict["movie_name"] = row[0]
-                row_dict["director_name"] = row[1]
-                row_dict["movie_year"] = row[2]
-                row_dict["name_main_actor_actress"] = row[3]
-                row_dict["read"] = row[4]
-                list_movies.append(row_dict)
-
-            result_list = self._create_dataframe_list(list_movies)
+                result_list = self._create_dataframe_list(list_movies)
 
         return result_list
 
@@ -163,7 +171,7 @@ class Movies:
             result = False
         return result
 
-    def _apply_read_movie_file(self, movie_name, filename="Movie_Registration.json"):
+    def _apply_read_movie_file(self, movie_name, filename="Movie_Registration.json") -> bool:
         """
         Private function created to read from Movie's json file
         :param movie_name, filename: movie_name desired to be deleted.
@@ -227,16 +235,16 @@ class Movies:
                 return df_movies
 
             except json.JSONDecodeError as e_json:
-                print(f"Your settings file(s) contains invalid JSON syntax. {str(e_json)}")
+                print(f"\nYour settings file(s) contains invalid JSON syntax. {str(e_json)}")
                 return []
             except ValueError as e_value:
-                print(f"Definition of an object is not set properly. {str(e_value)}")
+                print(f"\nDefinition of an object is not set properly. {str(e_value)}")
                 return []
             except Exception as e:
-                print(f"Occurred an error during reading listing operation. Contact you support for help! {str(e)}")
+                print(f"\nOccurred an error during reading listing operation.\nError description: {str(e)}")
                 return []
 
-    def _add_movie_db(self, content):
+    def _add_movie_db(self, content) -> bool:
         """
         Private function created to insert new movies into a Movie's table inside a database
         :param content: dictionary with all movies' information.
@@ -248,66 +256,62 @@ class Movies:
         main_actor = content["name_main_actor_actress"].upper()
         read = content["read"]
 
-        connection = sqlite3.connect(self.path_db + "data.db")
-        cursor = connection.cursor()
+        with DatabaseConnection(self.path_db) as cursor:
 
-        cursor.execute("Create table if not exists tb_movies("
-                       " movie_name varchar(100)"
-                       ", director_name varchar(100)"
-                       ", year int"
-                       ", main_actor varchar(100)"
-                       ", read boolean)")
-        cursor.execute("insert into tb_movies (movie_name, director_name, year, main_actor, read)"
-                       "values (?, ?, ?, ?, ?)",
-                       (movie_name, director_name, year, main_actor, read))
+            try:
+                cursor.execute("Create table if not exists tb_movies("
+                               " movie_name varchar(100)"
+                               ", director_name varchar(100)"
+                               ", year int"
+                               ", main_actor varchar(100)"
+                               ", read boolean)")
+                cursor.execute("insert into tb_movies (movie_name, director_name, year, main_actor, read)"
+                               "values (?, ?, ?, ?, ?)",
+                               (movie_name, director_name, year, main_actor, read))
+                return True
 
-        connection.commit()
-        connection.close()
+            except ValueError as e_value:
+                print(f"\nDefinition of an object is not set properly. {str(e_value)}")
+                return False
+            except Exception as e:
+                print(f"\nOccurred an error during the adding operation. Error description: {str(e)}")
+                return False
 
-        return True
 
-    def _delete_movie_db(self, movie_name):
+
+    def _delete_movie_db(self, movie_name) -> bool:
         """
         Private function created to delete movies into a Movie's table inside a database
         :param content: movie_name.
         :return: True of False
         """
-        connection = sqlite3.connect(self.path_db + "data.db")
-        cursor = connection.cursor()
+        with DatabaseConnection(self.path_db) as cursor:
 
-        cursor.execute("Create table if not exists tb_movies("
-                       " movie_name varchar(100)"
-                       ", director_name varchar(100)"
-                       ", year int"
-                       ", main_actor varchar(100)"
-                       ", read boolean)")
-        cursor.execute("delete from tb_movies where upper(movie_name) = ?", (movie_name.upper(),))
+            cursor.execute("Create table if not exists tb_movies("
+                           " movie_name varchar(100)"
+                           ", director_name varchar(100)"
+                           ", year int"
+                           ", main_actor varchar(100)"
+                           ", read boolean)")
+            cursor.execute("delete from tb_movies where upper(movie_name) = ?", (movie_name.upper(),))
+            return True
 
-        connection.commit()
-        connection.close()
-
-        return True
-
-    def _apply_read_movie_db(self, movie_name):
+    def _apply_read_movie_db(self, movie_name) -> bool:
         """
         Private function created to update the movies to be read into a Movie's table inside a database
         :param content: movie_name.
         :return: True of False
         """
-        connection = sqlite3.connect(self.path_db + "data.db")
-        cursor = connection.cursor()
+        with DatabaseConnection(self.path_db) as cursor:
 
-        cursor.execute("Create table if not exists tb_movies("
-                       " movie_name varchar(100)"
-                       ", director_name varchar(100)"
-                       ", year int"
-                       ", main_actor varchar(100)"
-                       ", read boolean)")
-        cursor.execute("update tb_movies"
-                       "   set read = 1"
-                       " where upper(movie_name) = ?", (movie_name.upper(),))
+            cursor.execute("Create table if not exists tb_movies("
+                           " movie_name varchar(100)"
+                           ", director_name varchar(100)"
+                           ", year int"
+                           ", main_actor varchar(100)"
+                           ", read boolean)")
+            cursor.execute("update tb_movies"
+                           "   set read = 1"
+                           " where upper(movie_name) = ?", (movie_name.upper(),))
 
-        connection.commit()
-        connection.close()
-
-        return True
+            return True

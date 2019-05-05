@@ -1,12 +1,13 @@
 import sys
 import json
 import pprint
+from typing import List, Union, Dict
 
 # path where the files live
 path_filename = sys.path[0] + "/utils/files/"
 
 
-def save_to_file(content, filename, type_operation="a"):
+def save_to_file(content, filename, type_operation="a") -> bool:
     """
     save_to_file(content, filename, type_operation="a")
     :param: content and filename
@@ -36,14 +37,14 @@ def save_to_file(content, filename, type_operation="a"):
             return True
 
     except json.JSONDecodeError as e_json:
-        print(f"Your settings file(s) contains invalid JSON syntax. {str(e_json)}")
+        print(f"\nYour settings file(s) contains invalid JSON syntax. {str(e_json)}")
         return False
     except Exception as e:
-        print(f"Occurred an error during saving operation. Contact you support for help! {str(e)}")
+        print(f"\nOccurred an error during saving operation. Contact you support for help! {str(e)}")
         return False
 
 
-def read_file(filename):
+def read_file(filename) -> List:
     """
     read_file(filename)
     :param: filename (filename.extension)
@@ -73,11 +74,11 @@ def read_file(filename):
             file.close
             return file_read
         else:
-            raise RuntimeError(f"Format of file not supported. Supported formats: txt, csv and json.")
+            raise RuntimeError(f"\nFormat of file not supported. Supported formats: txt, csv and json.")
             return []
     except json.JSONDecodeError as e_json:
-        print(f"The {filename} file is empty or the file settings contains invalid JSON syntax. {str(e_json)}")
+        print(f"\nThe {filename} file is empty or the file settings contains invalid JSON syntax. {str(e_json)}")
         return []
     except Exception as e:
-        print(f"Occurred an error during reading file operation. Contact you support for help! {str(e)}")
+        print(f"\nOccurred an error during reading file operation.\nError description: {str(e)}")
         return []

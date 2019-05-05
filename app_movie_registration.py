@@ -28,7 +28,7 @@ def menu():
 
         elif user_action.lower() == 'l':
             check_list_all = movie.list_movies("db")
-            #print(check_list_all)
+
             if len(check_list_all):
                 print("\nAll movies registered: \n", "\n", check_list_all)
             else:
