@@ -1,6 +1,6 @@
 # Movie Registration 
 
-This repo contains an app to request some arguments of user to register and and read movies.  
+This repo contains an app to request some arguments from user in order to register and read movies registrations.  
 
 ![alt text](https://www.baltimoresportsandlife.com/wp-content/uploads/2016/07/Movies.jpg "")
 
